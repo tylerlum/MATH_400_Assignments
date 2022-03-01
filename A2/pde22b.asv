@@ -1,0 +1,126 @@
+
+function pde22b
+
+' Solves the PDE using an in-built function PDEPE'
+
+r = linspace(0.001,1,200);    % spatial grid for r
+z = linspace(0,20,200);   % spatial grid for z
+t = linspace(0,.4,161);  % output times
+
+ra = linspace(0,1,40);    % another spatial grid
+ntrunc=5;
+
+subplot('position',[0.1 0.79 0.82 0.2])
+
+% Calculate a Bessel function, find some zeros, and plot it all
+nu=sqrt(4+1);
+zng=([1:ntrunc]*2-1)*pi/2+pi/2*nu+pi/4;            % guess for zeros
+for n=1:ntrunc
+	zn(n)=fzero(@(z) besselj(nu,z),zng(n));    % compute zeros
+end
+[zn;zng]
+plot(z,besselj(nu,z)),hold on
+hold on,
+  plot(zn,besselj(nu,zn),'*')
+hold off
+axis tight
+xlabel('z')
+ylabel('$J_{\sqrt{5}}(z)$','interpreter','latex')
+
+
+%  Compute some integrals involving a Bessel function:
+J=besselj(nu,sqrt(r)*zn(1));
+trapz(r,2*sqrt(1-r))
+trapz(r,J.^2)
+
+% Solve PDE
+u = zeros(numel(t), numel(r));
+[R, T] = meshgrid(r, t);
+theta = pi/2;
+N = 5;
+for n = 1:N
+%     z1n = z1n_fn(n);
+    z1n = z1n_fn2(n);
+    di
+    u(:, :) = u(:, :) + d(n, z1n) .* sin(pi/2) .* exp(-(z1n./2).^2 .* T) .* besselj(sqrt(5), z1n.*sqrt(R));
+end
+
+% Plot results
+subplot('position',[0.12 0.35 0.8 0.33])
+contourf(r,t,u,20)
+colorbar
+
+title('Numerical solution computed with 200 mesh points');
+xlabel('Position r');
+ylabel('Time t');
+
+ns=[1 13 29 57];
+t(ns)
+subplot('position',[0.1 0.08 0.39 0.18])
+plot(r,u(ns,:),'b');
+xlabel('Position x');
+ylabel('u(x,t)');
+axis([0 1 -inf inf])
+text(.2,.12,'t=0, 0.03, 0.07, 0.14')
+
+subplot('position',[0.57 0.08 0.39 0.18])
+plot(t,u(:,50),t,u(:,150));
+xlabel('Time, t');
+ylabel('u(1/4,t), u(3/4,t)');
+axis([0 t(end) -inf inf])
+
+% --------------------------------------------------------------------------
+
+function [c,f,s] = pdex1pde(r,t,u,DuDr)
+
+c = 1;
+f = r*DuDr;
+s = -u/r-DuDr;
+
+% --------------------------------------------------------------------------
+
+function u0 = pdex1ic(r)
+  u0 = 2*sqrt(r.*(1-r));
+    
+% --------------------------------------------------------------------------
+
+function [pl,ql,pr,qr] = pdex1bc(xl,ul,xr,ur,t)
+
+pl = ul;
+ql = 0;
+pr = ur;
+qr = 0;
+
+% --------------------------------------------------------------------------
+
+function z1n = z1n_fn(n)
+    % Get zn zero of J1(z)
+    if n == 1
+        z1n = 3.832;
+    elseif n == 2
+        z1n = 7.016;
+    elseif n == 3
+        z1n = 10.174;
+    elseif n == 4
+        z1n = 13.324;
+    elseif n == 5
+        z1n = 16.471;
+    end
+    
+function z1n2 = z1n_fn2(n)
+    guess = 0.5*pi*(2*n-0.5+sqrt(5));
+    z1n2 = fzero(@(z) besselj(sqrt(5), z), guess);
+    
+
+function d = d(n, z1n)   
+    % Compute integral
+    rs = linspace(0.001,1,200);
+    top_integrand = 2.*sqrt(rs.*(1-rs)).*besselj(sqrt(5), z1n.*sqrt(rs)) .* 1./rs;
+    bottom_integrand = besselj(sqrt(5), z1n.*sqrt(rs)).*besselj(sqrt(5), z1n.*sqrt(rs)).*1./rs;
+    top = trapz(rs, top_integrand);
+    bottom = trapz(rs, bottom_integrand);
+    d = top/bottom;
+    
+
+
+  
